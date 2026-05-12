@@ -64,13 +64,14 @@ function broadcast(data) {
 
 // 启动
 const PORT = process.env.PORT || 3000;
+const HOST = "0.0.0.0";
 
 // 先初始化 Redis，再启动服务器
 initCache().then(function() {
-    server.listen(PORT, function() {
-        console.log("项目已启动：http://localhost:" + PORT);
-        console.log("API 地址：http://localhost:" + PORT + "/api/todos");
-        console.log("聊天室：http://localhost:" + PORT + "/chat.html");
+    server.listen(PORT, HOST, function() {
+        console.log("项目已启动：http://" + HOST + ":" + PORT);
+        console.log("API 地址：http://" + HOST + ":" + PORT + "/api/todos");
+        console.log("聊天室：http://" + HOST + ":" + PORT + "/chat.html");
         console.log("运行环境：" + (process.env.NODE_ENV || "未设置"));
     });
 });
