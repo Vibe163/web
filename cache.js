@@ -1,9 +1,7 @@
-const { createClient } = require("redis");
-
 let client = null;
 let isConnected = false;
 
-// 初始化 Redis 连接（3秒超时，连不上就跳过）
+// 初始化 Redis 连接（快速失败，不阻塞启动）
 async function initCache() {
   const redisUrl = process.env.REDIS_URL;
   if (!redisUrl) {
@@ -12,6 +10,7 @@ async function initCache() {
   }
 
   try {
+    const { createClient } = require("redis");
     client = createClient({ url: redisUrl });
 
     client.on("error", () => {
@@ -23,9 +22,9 @@ async function initCache() {
       isConnected = true;
     });
 
-    // 3秒超时
+    // 2秒超时，连不上就跳过
     const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("超时")), 3000)
+      setTimeout(() => reject(new Error("超时")), 2000)
     );
     await Promise.race([client.connect(), timeout]);
   } catch {
