@@ -38,49 +38,86 @@
         const messagesDiv = document.getElementById("messages");
         const msgInput = document.getElementById("msgInput");
 
-        // 连接 WebSocket（自动判断 ws 或 wss）
-        const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const ws = new WebSocket(wsProtocol + "//" + window.location.host);
+        let ws = null;
         let myName = "";
+        let reconnectTimer = null;
 
-        // 收到消息
-        ws.onmessage = function(event) {
-            const data = JSON.parse(event.data);
+        // 请求通知权限
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
 
-            if (data.type === "system") {
-                // 系统消息（有人加入/离开）
-                const div = document.createElement("div");
-                div.className = "message system";
-                div.textContent = data.text;
-                messagesDiv.appendChild(div);
+        // 连接 WebSocket
+        function connect() {
+            const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+            ws = new WebSocket(wsProtocol + "//" + window.location.host);
 
-                // 记录自己的名字（第一条系统消息是自己加入）
-                if (!myName && data.text.includes("加入了")) {
-                    myName = data.text.replace(" 加入了聊天室", "");
+            // 连接建立
+            ws.onopen = function() {
+                addSystemMessage("已连接到聊天室");
+                // 清除重连定时器
+                if (reconnectTimer) {
+                    clearTimeout(reconnectTimer);
+                    reconnectTimer = null;
                 }
-            } else {
-                // 聊天消息
-                const isMine = (data.name === myName);
-                const div = document.createElement("div");
-                div.className = "message" + (isMine ? " mine" : "");
-                div.innerHTML = '<div class="name">' + data.name + '</div>' +
-                               '<div class="text">' + data.text + '</div>';
-                messagesDiv.appendChild(div);
+            };
+
+            // 收到消息
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+
+                if (data.type === "system") {
+                    const div = document.createElement("div");
+                    div.className = "message system";
+                    div.textContent = data.text;
+                    messagesDiv.appendChild(div);
+
+                    // 记录自己的名字
+                    if (!myName && data.text.includes("加入了")) {
+                        myName = data.text.replace(" 加入了聊天室", "");
+                    }
+                } else {
+                    const isMine = (data.name === myName);
+                    const div = document.createElement("div");
+                    div.className = "message" + (isMine ? " mine" : "");
+                    div.innerHTML = '<div class="name">' + data.name + '</div>' +
+                                   '<div class="text">' + data.text + '</div>';
+                    messagesDiv.appendChild(div);
+
+                    // 别人发的消息，发送通知
+                    if (!isMine) {
+                        showNotification(data.name, data.text);
+                    }
+                }
+
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            };
+
+            // 连接关闭，自动重连
+            ws.onclose = function() {
+                addSystemMessage("连接断开，2秒后重连...");
+                reconnectTimer = setTimeout(connect, 2000);
+            };
+
+            // 连接错误，自动重连
+            ws.onerror = function() {
+                ws.close();
+            };
+        }
+
+        // 显示通知
+        function showNotification(name, text) {
+            // 页面在前台时不通知
+            if (document.hasFocus()) return;
+
+            // 检查通知权限
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(name + " 发来消息", {
+                    body: text,
+                    icon: "https://img.icons8.com/color/48/chat.png"
+                });
             }
-
-            // 滚动到底部
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        };
-
-        // 连接建立
-        ws.onopen = function() {
-            addSystemMessage("已连接到聊天室");
-        };
-
-        // 连接关闭
-        ws.onclose = function() {
-            addSystemMessage("连接已断开");
-        };
+        }
 
         // 发送消息
         function send() {
@@ -103,6 +140,9 @@
             div.textContent = text;
             messagesDiv.appendChild(div);
         }
+
+        // 开始连接
+        connect();
     </script>
 </body>
 </html>
