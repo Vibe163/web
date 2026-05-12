@@ -62,9 +62,12 @@ function broadcast(data) {
     });
 }
 
-// 启动
+// 启动（Railway 需要监听 PORT 环境变量）
 const PORT = process.env.PORT || 3000;
 const HOST = "0.0.0.0";
+
+console.log("PORT 环境变量:", process.env.PORT);
+console.log("使用端口:", PORT);
 
 // 先初始化 Redis，再启动服务器
 initCache().then(function() {
