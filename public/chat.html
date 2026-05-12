@@ -38,8 +38,9 @@
         const messagesDiv = document.getElementById("messages");
         const msgInput = document.getElementById("msgInput");
 
-        // 连接 WebSocket
-        const ws = new WebSocket("ws://" + window.location.host);
+        // 连接 WebSocket（自动判断 ws 或 wss）
+        const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const ws = new WebSocket(wsProtocol + "//" + window.location.host);
         let myName = "";
 
         // 收到消息
