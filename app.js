@@ -71,6 +71,16 @@ wss.on("connection", function(ws) {
                 if (targetWs && targetWs.readyState === 1) {
                     targetWs.send(JSON.stringify(msg));
                 }
+            } else if (msg.type === "friend-added") {
+                // 好友添加通知：转发给目标用户
+                const targetWs = onlineUsers.get(msg.to);
+                if (targetWs && targetWs.readyState === 1) {
+                    targetWs.send(JSON.stringify({
+                        type: "friend-added",
+                        from: msg.from,
+                        fromName: msg.fromName
+                    }));
+                }
             }
         } catch (e) {
             console.error("消息处理错误:", e);

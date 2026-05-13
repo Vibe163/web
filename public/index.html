@@ -457,6 +457,9 @@
                     handleIncomingMessage(msg);
                 } else if (msg.type === "call-offer" || msg.type === "call-answer" || msg.type === "call-candidate" || msg.type === "call-end") {
                     handleCallSignaling(msg);
+                } else if (msg.type === "friend-added") {
+                    // 收到好友添加通知，刷新好友列表
+                    loadFriends();
                 }
             };
 
@@ -684,6 +687,14 @@
                     alert(data.error);
                     return;
                 }
+
+                // 通过 WebSocket 通知对方
+                ws.send(JSON.stringify({
+                    type: "friend-added",
+                    from: currentUser.id,
+                    fromName: currentUser.username,
+                    to: friendId
+                }));
 
                 await loadFriends();
                 closeAddFriend();
