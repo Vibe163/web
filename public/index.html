@@ -836,8 +836,13 @@
                     // 连接建立后，确保音频播放
                     const audio = document.getElementById("remoteAudio");
                     if (audio && audio.srcObject) {
-                        audio.play().catch(function() {});
+                        audio.play().catch(function(e) {
+                            console.log("音频播放失败:", e);
+                        });
                     }
+                } else if (peerConnection.connectionState === "failed" || peerConnection.connectionState === "disconnected") {
+                    console.log("连接失败或断开");
+                    endCall();
                 }
             };
 
@@ -890,15 +895,19 @@
         // 接听电话
         async function acceptCall() {
             try {
+                console.log("开始接听电话");
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                console.log("获取麦克风成功");
                 setupPeerConnection();
 
                 // 设置远程 offer
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOffer));
+                console.log("设置远程描述成功");
 
                 // 创建 answer
                 const answer = await peerConnection.createAnswer();
                 await peerConnection.setLocalDescription(answer);
+                console.log("创建 answer 成功");
 
                 // 发送 answer 给对方
                 ws.send(JSON.stringify({
@@ -908,10 +917,17 @@
                     answer: answer
                 }));
 
-                document.getElementById("callStatus").textContent = "通话中";
+                // 添加之前缓存的 ICE 候选
+                for (const candidate of pendingCandidates) {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                }
+                pendingCandidates = [];
+
+                document.getElementById("callStatus").textContent = "正在连接...";
                 document.getElementById("acceptBtn").style.display = "none";
                 document.getElementById("muteBtn").style.display = "flex";
                 document.getElementById("speakerBtn").style.display = "flex";
+                console.log("接听完成，等待连接建立");
             } catch (e) {
                 console.error("接听失败:", e);
                 endCall();
@@ -919,6 +935,7 @@
         }
 
         let incomingOffer = null;
+        let pendingCandidates = []; // 缓存 ICE 候选
 
         // 结束通话
         function endCall() {
@@ -960,13 +977,20 @@
             callSeconds = 0;
             isMuted = false;
             incomingOffer = null;
+            pendingCandidates = [];
         }
 
         // 开始计时
         function startCallTimer() {
+            // 先清除旧的计时器
+            if (callTimer) {
+                clearInterval(callTimer);
+                callTimer = null;
+            }
             callSeconds = 0;
             const timerEl = document.getElementById("callTimer");
             timerEl.style.display = "block";
+            timerEl.textContent = "00:00";
             callTimer = setInterval(function() {
                 callSeconds++;
                 const mins = Math.floor(callSeconds / 60).toString().padStart(2, "0");
@@ -1024,14 +1048,18 @@
 
             } else if (msg.type === "call-answer") {
                 // 对方接听
+                console.log("收到对方接听");
                 peerConnection.setRemoteDescription(new RTCSessionDescription(msg.answer));
                 document.getElementById("callStatus").textContent = "通话中";
                 startCallTimer();
 
             } else if (msg.type === "call-candidate") {
                 // 收到 ICE 候选
-                if (peerConnection) {
+                if (peerConnection && peerConnection.remoteDescription) {
                     peerConnection.addIceCandidate(new RTCIceCandidate(msg.candidate));
+                } else {
+                    // 缓存候选，等 peerConnection 就绪后再添加
+                    pendingCandidates.push(msg.candidate);
                 }
 
             } else if (msg.type === "call-end") {
