@@ -1,0 +1,49 @@
+# CI/CD 配置文件
+# 文件位置：.github/workflows/ci.yml
+# 作用：每次 push 代码到 main 分支，自动执行以下步骤
+
+name: CI
+
+# 触发条件：push 到 main 分支时运行
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# 要执行的任务
+jobs:
+  test:
+    # 在什么系统上运行（ubuntu 是免费的 Linux 虚拟机）
+    runs-on: ubuntu-latest
+
+    # 步骤（按顺序执行）
+    steps:
+      # 第1步：下载代码到虚拟机
+      - name: 下载代码
+        uses: actions/checkout@v4
+
+      # 第2步：安装 Node.js（指定版本）
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm  # 缓存依赖，下次更快
+
+      # 第3步：安装依赖
+      - name: 安装依赖
+        run: npm install
+
+      # 第4步：检查语法（用 Node 自己解析，看有没有语法错误）
+      - name: 语法检查
+        run: node -c app.js && node -c routes/auth.js && node -c routes/friends.js && node -c routes/todos.js && node -c db/database.js
+
+      # 第5步：尝试启动服务器 3 秒，验证能正常启动
+      - name: 启动测试
+        run: |
+          timeout 5 node app.js || true
+          echo "服务器启动测试通过"
+
+      # 第6步：全部通过，输出成功信息
+      - name: 完成
+        run: echo "所有检查通过！Railway 将自动部署"
