@@ -1,0 +1,18 @@
+# 微服务示例 — docker-compose up 一键启动两个服务
+
+services:
+  # 认证服务
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "3001:3001"
+
+  # 聊天服务（依赖认证服务）
+  chat-service:
+    build: ./chat-service
+    ports:
+      - "3002:3002"
+    environment:
+      - AUTH_SERVICE=http://auth-service:3001
+    depends_on:
+      - auth-service
