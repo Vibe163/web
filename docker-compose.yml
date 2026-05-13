@@ -1,0 +1,15 @@
+# docker-compose.yml — 一键启动命令：docker-compose up
+
+services:
+  web:                          # 服务名叫 web
+    build: .                    # 用当前目录的 Dockerfile 构建
+    ports:
+      - "3000:3000"             # 宿主机端口:容器端口
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - JWT_SECRET=change-this-to-a-random-string
+      - DATA_DIR=/app/data
+    volumes:
+      - ./data:/app/data        # 数据持久化：容器里的数据映射到宿主机
+    restart: unless-stopped     # 崩溃自动重启

@@ -1,5 +1,14 @@
 const Database = require("better-sqlite3");
-const dbPath = process.env.DB_PATH || "app.db";
+const path = require("path");
+const fs = require("fs");
+
+// 确保数据目录存在（Docker 挂载卷时需要）
+const dataDir = process.env.DATA_DIR || ".";
+if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+}
+
+const dbPath = process.env.DB_PATH || path.join(dataDir, "app.db");
 const db = new Database(dbPath);
 
 // 启用 WAL 模式，提高并发性能
