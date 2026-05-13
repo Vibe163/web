@@ -15,7 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 // 维护模式开关：环境变量 MAINTENANCE=1 时关站
 app.use(function(req, res, next) {
     if (process.env.MAINTENANCE === "1") {
-        return res.status(503).send('<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>维护中</title><style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0e1621;font-family:-apple-system,sans-serif}.box{text-align:center;color:#f5f5f5}.icon{font-size:64px;margin-bottom:20px}.title{font-size:24px;font-weight:600;margin-bottom:12px}.desc{color:#708499;font-size:15px}</style></head><body><div class="box"><div class="icon">🔧</div><div class="title">系统维护中</div><div class="desc">网站暂时关闭，请稍后再来</div></div></body></html>');
+        return res.status(503).send('<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>无法访问此网站</title><style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0e1621;font-family:-apple-system,sans-serif}.box{text-align:center;color:#f5f5f5;max-width:400px;padding:20px}.icon{font-size:56px;margin-bottom:24px;opacity:0.6}.title{font-size:20px;font-weight:600;margin-bottom:10px}.desc{color:#708499;font-size:14px;line-height:1.6}.code{color:#4a5568;font-size:12px;margin-top:20px;padding:12px;background:#17212b;border-radius:8px;font-family:monospace}</style></head><body><div class="box"><div class="icon">⚠️</div><div class="title">无法连接</div><div class="desc">此网站暂时无法访问，请检查您的网络连接是否正常，或稍后再试。</div><div class="code">ERR_CONNECTION_FAILED</div></div></body></html>');
     }
     next();
 });
