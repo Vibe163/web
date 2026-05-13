@@ -582,15 +582,36 @@
         let onlineUsers = new Set();
         let isLogin = true;
 
+        // 带 JWT token 的请求工具
+        async function authFetch(url, options) {
+            if (!options) options = {};
+            if (!options.headers) options.headers = {};
+            if (currentUser && currentUser.token) {
+                options.headers["Authorization"] = "Bearer " + currentUser.token;
+            }
+            if (options.body && typeof options.body === "object" && !(options.body instanceof FormData)) {
+                options.headers["Content-Type"] = "application/json";
+                options.body = JSON.stringify(options.body);
+            }
+            const res = await fetch(url, options);
+            // 如果 token 过期，自动退出登录
+            if (res.status === 401) {
+                localStorage.removeItem("chatUser");
+                location.reload();
+                return;
+            }
+            return res;
+        }
+
         // 初始化
         async function init() {
             const saved = localStorage.getItem("chatUser");
             if (saved) {
                 currentUser = JSON.parse(saved);
-                // 验证用户是否还存在，并同步最新数据
+                // 用 token 验证登录状态
                 try {
-                    const res = await fetch("/api/auth/verify/" + currentUser.id);
-                    if (res.ok) {
+                    const res = await authFetch("/api/auth/verify");
+                    if (res && res.ok) {
                         const data = await res.json();
                         currentUser.username = data.username;
                         currentUser.avatar = data.avatar;
@@ -643,7 +664,7 @@
                     return;
                 }
 
-                currentUser = { id: data.id, username: data.username, avatar: data.avatar || "" };
+                currentUser = { id: data.id, username: data.username, avatar: data.avatar || "", token: data.token };
                 localStorage.setItem("chatUser", JSON.stringify(currentUser));
                 showMainPage();
             } catch (e) {
@@ -974,7 +995,7 @@
 
             // 加载统计数据
             try {
-                const res = await fetch("/api/auth/profile/" + currentUser.id);
+                const res = await authFetch("/api/auth/profile");
                 const data = await res.json();
                 document.getElementById("statFriends").textContent = data.friendsCount || 0;
                 document.getElementById("statMessages").textContent = data.messagesCount || 0;
@@ -1054,10 +1075,9 @@
                     return;
                 }
                 try {
-                    const res = await fetch("/api/auth/update-username", {
+                    const res = await authFetch("/api/auth/update-username", {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ userId: currentUser.id, username: newUsername })
+                        body: { username: newUsername }
                     });
                     const data = await res.json();
                     if (!res.ok) {
@@ -1089,10 +1109,9 @@
                     return;
                 }
                 try {
-                    const res = await fetch("/api/auth/update-password", {
+                    const res = await authFetch("/api/auth/update-password", {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ userId: currentUser.id, oldPassword: oldPwd, newPassword: newPwd })
+                        body: { oldPassword: oldPwd, newPassword: newPwd }
                     });
                     const data = await res.json();
                     if (!res.ok) {
@@ -1113,10 +1132,9 @@
                     return;
                 }
                 try {
-                    const res = await fetch("/api/auth/update-avatar", {
+                    const res = await authFetch("/api/auth/update-avatar", {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ userId: currentUser.id, avatar: selectedAvatar })
+                        body: { avatar: selectedAvatar }
                     });
                     if (res.ok) {
                         currentUser.avatar = selectedAvatar;
