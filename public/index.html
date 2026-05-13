@@ -311,6 +311,118 @@
             flex: 1; display: flex; align-items: center; justify-content: center;
             color: #708499; font-size: 16px;
         }
+
+        /* 个人中心 */
+        .profile-page {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: #0e1621; z-index: 150; display: none;
+            flex-direction: column; overflow-y: auto;
+        }
+        .profile-page.show { display: flex; }
+        .profile-header {
+            background: #17212b; padding: 12px 16px;
+            display: flex; align-items: center; min-height: 56px;
+            border-bottom: 1px solid #0e1621;
+        }
+        .profile-header .back-btn {
+            background: none; border: none; color: #6ab2f2;
+            cursor: pointer; font-size: 20px; margin-right: 16px;
+        }
+        .profile-header h3 { color: #f5f5f5; font-size: 16px; }
+        .profile-body { padding: 24px 16px; max-width: 480px; margin: 0 auto; width: 100%; }
+
+        .profile-avatar-section {
+            display: flex; flex-direction: column; align-items: center;
+            margin-bottom: 32px;
+        }
+        .profile-avatar {
+            width: 96px; height: 96px; border-radius: 50%;
+            background: linear-gradient(135deg, #6ab2f2, #4a9dea);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 42px; font-weight: bold;
+            margin-bottom: 12px; cursor: pointer; position: relative;
+        }
+        .profile-avatar:hover::after {
+            content: "更换"; position: absolute; bottom: -4px; left: 50%;
+            transform: translateX(-50%); background: rgba(0,0,0,0.7);
+            color: white; font-size: 11px; padding: 2px 8px;
+            border-radius: 8px; white-space: nowrap;
+        }
+        .profile-username { color: #f5f5f5; font-size: 20px; font-weight: 600; }
+        .profile-id { color: #708499; font-size: 13px; margin-top: 4px; }
+
+        .profile-stats {
+            display: flex; justify-content: center; gap: 40px;
+            margin-bottom: 32px; padding: 16px 0;
+            border-top: 1px solid #1a2533; border-bottom: 1px solid #1a2533;
+        }
+        .stat-item { text-align: center; }
+        .stat-num { color: #f5f5f5; font-size: 22px; font-weight: 600; }
+        .stat-label { color: #708499; font-size: 12px; margin-top: 4px; }
+
+        .profile-section { margin-bottom: 24px; }
+        .profile-section-title {
+            color: #6ab2f2; font-size: 13px; font-weight: 600;
+            text-transform: uppercase; margin-bottom: 8px; padding-left: 4px;
+        }
+        .profile-item {
+            display: flex; align-items: center; padding: 14px 16px;
+            background: #17212b; border-radius: 10px; margin-bottom: 2px;
+            cursor: pointer; transition: background 0.1s;
+        }
+        .profile-item:first-child { border-radius: 10px 10px 2px 2px; }
+        .profile-item:last-child { border-radius: 2px 2px 10px 10px; margin-bottom: 0; }
+        .profile-item:only-child { border-radius: 10px; }
+        .profile-item:hover { background: #1f2936; }
+        .profile-item .icon { font-size: 20px; margin-right: 14px; width: 24px; text-align: center; }
+        .profile-item .label { color: #f5f5f5; font-size: 15px; flex: 1; }
+        .profile-item .value { color: #708499; font-size: 14px; margin-right: 8px; }
+        .profile-item .arrow { color: #4a5568; font-size: 16px; }
+
+        .profile-item.danger { color: #e53935; }
+        .profile-item.danger .label { color: #e53935; }
+
+        /* 编辑弹窗 */
+        .edit-modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); display: none;
+            align-items: center; justify-content: center; z-index: 160;
+        }
+        .edit-modal.show { display: flex; }
+        .edit-modal .edit-box {
+            background: #17212b; border-radius: 12px; padding: 24px;
+            width: 360px; max-width: 90%;
+        }
+        .edit-modal h3 { color: #f5f5f5; margin-bottom: 16px; font-size: 17px; }
+        .edit-modal input {
+            width: 100%; padding: 12px 16px; background: #242f3d;
+            border: 2px solid transparent; border-radius: 8px;
+            color: #f5f5f5; font-size: 15px; outline: none; margin-bottom: 12px;
+        }
+        .edit-modal input:focus { border-color: #2b5278; }
+        .edit-modal .edit-actions { display: flex; gap: 10px; }
+        .edit-modal .edit-actions button {
+            flex: 1; padding: 12px; border-radius: 8px;
+            border: none; font-size: 15px; cursor: pointer;
+        }
+        .edit-modal .btn-cancel { background: #242f3d; color: #f5f5f5; }
+        .edit-modal .btn-save { background: #2b5278; color: white; }
+        .edit-modal .btn-save:hover { background: #3a6d9e; }
+        .edit-modal .edit-error { color: #e53935; font-size: 13px; margin-bottom: 8px; display: none; }
+
+        /* 头像选择器 */
+        .emoji-picker {
+            display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;
+            max-height: 120px; overflow-y: auto;
+        }
+        .emoji-option {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: #242f3d; display: flex; align-items: center;
+            justify-content: center; font-size: 22px; cursor: pointer;
+            border: 2px solid transparent; transition: all 0.15s;
+        }
+        .emoji-option:hover { background: #2b5278; }
+        .emoji-option.selected { border-color: #6ab2f2; background: #2b5278; }
     </style>
 </head>
 <body>
@@ -332,6 +444,7 @@
             <!-- 侧边栏 -->
             <div class="sidebar">
                 <div class="sidebar-header">
+                    <button onclick="showProfile()" style="font-size:18px;padding:6px 10px">☰</button>
                     <h3>聊天</h3>
                     <button onclick="showAddFriend()">+ 添加好友</button>
                 </div>
@@ -402,6 +515,64 @@
         </div>
     </div>
 
+    <!-- 个人中心 -->
+    <div class="profile-page" id="profilePage">
+        <div class="profile-header">
+            <button class="back-btn" onclick="closeProfile()">←</button>
+            <h3>个人中心</h3>
+        </div>
+        <div class="profile-body">
+            <div class="profile-avatar-section">
+                <div class="profile-avatar" id="profileAvatar" onclick="showEditAvatar()">?</div>
+                <div class="profile-username" id="profileUsername">用户名</div>
+                <div class="profile-id" id="profileId">ID: --</div>
+            </div>
+            <div class="profile-stats">
+                <div class="stat-item">
+                    <div class="stat-num" id="statFriends">0</div>
+                    <div class="stat-label">好友</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-num" id="statMessages">0</div>
+                    <div class="stat-label">消息</div>
+                </div>
+            </div>
+            <div class="profile-section">
+                <div class="profile-section-title">账号</div>
+                <div class="profile-item" onclick="showEditUsername()">
+                    <div class="icon">👤</div>
+                    <div class="label">用户名</div>
+                    <div class="value" id="profileUsernameValue">--</div>
+                    <div class="arrow">›</div>
+                </div>
+                <div class="profile-item" onclick="showEditPassword()">
+                    <div class="icon">🔑</div>
+                    <div class="label">修改密码</div>
+                    <div class="arrow">›</div>
+                </div>
+            </div>
+            <div class="profile-section">
+                <div class="profile-item danger" onclick="logout()">
+                    <div class="icon">🚪</div>
+                    <div class="label">退出登录</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑弹窗 -->
+    <div class="edit-modal" id="editModal">
+        <div class="edit-box">
+            <h3 id="editTitle">编辑</h3>
+            <div class="edit-error" id="editError"></div>
+            <div id="editContent"></div>
+            <div class="edit-actions">
+                <button class="btn-cancel" onclick="closeEditModal()">取消</button>
+                <button class="btn-save" id="editSaveBtn" onclick="saveEdit()">保存</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // 状态
         let currentUser = null;
@@ -416,13 +587,16 @@
             const saved = localStorage.getItem("chatUser");
             if (saved) {
                 currentUser = JSON.parse(saved);
-                // 验证用户是否还存在
+                // 验证用户是否还存在，并同步最新数据
                 try {
                     const res = await fetch("/api/auth/verify/" + currentUser.id);
                     if (res.ok) {
+                        const data = await res.json();
+                        currentUser.username = data.username;
+                        currentUser.avatar = data.avatar;
+                        localStorage.setItem("chatUser", JSON.stringify(currentUser));
                         showMainPage();
                     } else {
-                        // 用户不存在，清除登录状态
                         localStorage.removeItem("chatUser");
                         currentUser = null;
                     }
@@ -469,7 +643,7 @@
                     return;
                 }
 
-                currentUser = { id: data.id, username: data.username };
+                currentUser = { id: data.id, username: data.username, avatar: data.avatar || "" };
                 localStorage.setItem("chatUser", JSON.stringify(currentUser));
                 showMainPage();
             } catch (e) {
@@ -539,8 +713,9 @@
             list.innerHTML = filtered.map(f => {
                 const isOnline = onlineUsers.has(f.id);
                 const isActive = currentFriend && currentFriend.id === f.id;
+                const avatar = f.avatar || f.username[0].toUpperCase();
                 return '<div class="friend-item' + (isActive ? ' active' : '') + '" onclick="selectFriend(' + f.id + ')">' +
-                    '<div class="friend-avatar">' + f.username[0].toUpperCase() + '</div>' +
+                    '<div class="friend-avatar">' + avatar + '</div>' +
                     '<div class="friend-info">' +
                     '<div class="name">' + f.username + '</div>' +
                     '</div>' +
@@ -564,7 +739,7 @@
             document.getElementById("chatMessages").style.display = "block";
             document.getElementById("chatInput").style.display = "flex";
 
-            document.getElementById("chatAvatar").textContent = currentFriend.username[0].toUpperCase();
+            document.getElementById("chatAvatar").textContent = currentFriend.avatar || currentFriend.username[0].toUpperCase();
             document.getElementById("chatName").textContent = currentFriend.username;
 
             updateChatStatus();
@@ -781,6 +956,181 @@
             location.reload();
         }
 
+        // ========== 个人中心 ==========
+
+        let editMode = null; // "username" | "password" | "avatar"
+
+        // 显示个人中心
+        async function showProfile() {
+            const page = document.getElementById("profilePage");
+            page.classList.add("show");
+
+            // 填充用户信息
+            const avatar = currentUser.avatar || currentUser.username[0].toUpperCase();
+            document.getElementById("profileAvatar").textContent = avatar;
+            document.getElementById("profileUsername").textContent = currentUser.username;
+            document.getElementById("profileId").textContent = "ID: " + currentUser.id;
+            document.getElementById("profileUsernameValue").textContent = currentUser.username;
+
+            // 加载统计数据
+            try {
+                const res = await fetch("/api/auth/profile/" + currentUser.id);
+                const data = await res.json();
+                document.getElementById("statFriends").textContent = data.friendsCount || 0;
+                document.getElementById("statMessages").textContent = data.messagesCount || 0;
+            } catch (e) {
+                console.error("加载统计失败:", e);
+            }
+        }
+
+        // 关闭个人中心
+        function closeProfile() {
+            document.getElementById("profilePage").classList.remove("show");
+        }
+
+        // 显示修改用户名弹窗
+        function showEditUsername() {
+            editMode = "username";
+            document.getElementById("editTitle").textContent = "修改用户名";
+            document.getElementById("editContent").innerHTML =
+                '<input type="text" id="editInput" placeholder="新用户名" value="' + escapeHtml(currentUser.username) + '" autocomplete="off">';
+            document.getElementById("editError").style.display = "none";
+            document.getElementById("editModal").classList.add("show");
+            document.getElementById("editInput").focus();
+        }
+
+        // 显示修改密码弹窗
+        function showEditPassword() {
+            editMode = "password";
+            document.getElementById("editTitle").textContent = "修改密码";
+            document.getElementById("editContent").innerHTML =
+                '<input type="password" id="editOldPwd" placeholder="当前密码">' +
+                '<input type="password" id="editNewPwd" placeholder="新密码（至少6位）">';
+            document.getElementById("editError").style.display = "none";
+            document.getElementById("editModal").classList.add("show");
+            document.getElementById("editOldPwd").focus();
+        }
+
+        // 显示修改头像弹窗
+        function showEditAvatar() {
+            editMode = "avatar";
+            const emojis = ["😀","😎","🤩","🥳","🦊","🐱","🐶","🐼","🐨","🦁","🐯","🐸","🐵","👻","🤖","👽","🦸","🧙","👨‍💻","👩‍💻","🎵","🎮","⚽","🏀","🌟","🔥","💎","🎯","🚀","🌈"];
+            const current = currentUser.avatar || "";
+            let html = '<div class="emoji-picker">';
+            emojis.forEach(function(e) {
+                html += '<div class="emoji-option' + (current === e ? ' selected' : '') + '" onclick="selectAvatarEmoji(this,\'' + e + '\')">' + e + '</div>';
+            });
+            html += '</div>';
+            document.getElementById("editTitle").textContent = "选择头像";
+            document.getElementById("editContent").innerHTML = html;
+            document.getElementById("editError").style.display = "none";
+            document.getElementById("editModal").classList.add("show");
+        }
+
+        let selectedAvatar = null;
+
+        function selectAvatarEmoji(el, emoji) {
+            document.querySelectorAll(".emoji-option").forEach(function(o) { o.classList.remove("selected"); });
+            el.classList.add("selected");
+            selectedAvatar = emoji;
+        }
+
+        // 关闭编辑弹窗
+        function closeEditModal() {
+            document.getElementById("editModal").classList.remove("show");
+            editMode = null;
+            selectedAvatar = null;
+        }
+
+        // 保存编辑
+        async function saveEdit() {
+            const errorEl = document.getElementById("editError");
+
+            if (editMode === "username") {
+                const newUsername = document.getElementById("editInput").value.trim();
+                if (!newUsername || newUsername.length < 2 || newUsername.length > 20) {
+                    errorEl.textContent = "用户名长度 2-20 个字符";
+                    errorEl.style.display = "block";
+                    return;
+                }
+                try {
+                    const res = await fetch("/api/auth/update-username", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ userId: currentUser.id, username: newUsername })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) {
+                        errorEl.textContent = data.error;
+                        errorEl.style.display = "block";
+                        return;
+                    }
+                    currentUser.username = newUsername;
+                    localStorage.setItem("chatUser", JSON.stringify(currentUser));
+                    closeEditModal();
+                    showProfile();
+                    updateFriendsList();
+                } catch (e) {
+                    errorEl.textContent = "网络错误";
+                    errorEl.style.display = "block";
+                }
+
+            } else if (editMode === "password") {
+                const oldPwd = document.getElementById("editOldPwd").value;
+                const newPwd = document.getElementById("editNewPwd").value;
+                if (!oldPwd || !newPwd) {
+                    errorEl.textContent = "请填写完整";
+                    errorEl.style.display = "block";
+                    return;
+                }
+                if (newPwd.length < 6) {
+                    errorEl.textContent = "新密码至少 6 位";
+                    errorEl.style.display = "block";
+                    return;
+                }
+                try {
+                    const res = await fetch("/api/auth/update-password", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ userId: currentUser.id, oldPassword: oldPwd, newPassword: newPwd })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) {
+                        errorEl.textContent = data.error;
+                        errorEl.style.display = "block";
+                        return;
+                    }
+                    closeEditModal();
+                    alert("密码修改成功");
+                } catch (e) {
+                    errorEl.textContent = "网络错误";
+                    errorEl.style.display = "block";
+                }
+
+            } else if (editMode === "avatar") {
+                if (!selectedAvatar) {
+                    closeEditModal();
+                    return;
+                }
+                try {
+                    const res = await fetch("/api/auth/update-avatar", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ userId: currentUser.id, avatar: selectedAvatar })
+                    });
+                    if (res.ok) {
+                        currentUser.avatar = selectedAvatar;
+                        localStorage.setItem("chatUser", JSON.stringify(currentUser));
+                        closeEditModal();
+                        showProfile();
+                    }
+                } catch (e) {
+                    errorEl.textContent = "网络错误";
+                    errorEl.style.display = "block";
+                }
+            }
+        }
+
         // ========== 语音通话 ==========
 
         let peerConnection = null;
@@ -833,6 +1183,7 @@
                     type: "call-offer",
                     from: currentUser.id,
                     fromName: currentUser.username,
+                    fromAvatar: currentUser.avatar || "",
                     to: callTarget.id,
                     offer: offer,
                     video: withVideo
@@ -941,7 +1292,7 @@
             } else {
                 overlay.classList.remove("video-mode");
             }
-            document.getElementById("callAvatar").textContent = callTarget.username[0].toUpperCase();
+            document.getElementById("callAvatar").textContent = (callTarget.avatar || callTarget.username[0].toUpperCase());
             document.getElementById("callName").textContent = callTarget.username;
             document.getElementById("callStatus").textContent = status;
             document.getElementById("callTimer").style.display = "none";
@@ -963,7 +1314,7 @@
             } else {
                 overlay.classList.remove("video-mode");
             }
-            document.getElementById("callAvatar").textContent = callerName[0].toUpperCase();
+            document.getElementById("callAvatar").textContent = (callTarget.avatar || callerName[0].toUpperCase());
             document.getElementById("callName").textContent = callerName;
             document.getElementById("callStatus").textContent = hasVideo ? "视频来电..." : "来电...";
             document.getElementById("callTimer").style.display = "none";
@@ -1180,7 +1531,7 @@
         function handleCallSignaling(msg) {
             if (msg.type === "call-offer") {
                 // 收到来电
-                callTarget = { id: msg.from, username: msg.fromName };
+                callTarget = { id: msg.from, username: msg.fromName, avatar: msg.fromAvatar || "" };
                 incomingOffer = msg.offer;
                 showIncomingCallUI(msg.fromName, msg.video === true);
 

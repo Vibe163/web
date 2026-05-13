@@ -38,7 +38,7 @@ router.get("/:userId", function(req, res) {
     const userId = req.params.userId;
 
     const friends = db.prepare(`
-        SELECT u.id, u.username
+        SELECT u.id, u.username, u.avatar
         FROM friends f
         JOIN users u ON f.friend_id = u.id
         WHERE f.user_id = ?
