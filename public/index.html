@@ -214,6 +214,42 @@
         .call-action-btn.mute.active { background: #e53935; }
         .call-action-btn.speaker { background: #242f3d; color: white; }
         .call-action-btn.speaker.active { background: #2b5278; }
+        .call-action-btn.video { background: #242f3d; color: white; }
+        .call-action-btn.video.active { background: #2b5278; }
+
+        /* 视频通话 */
+        .call-overlay.video-mode {
+            background: #000;
+        }
+        .call-video-container {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            display: none;
+        }
+        .call-overlay.video-mode .call-video-container { display: block; }
+        .call-overlay.video-mode .call-avatar,
+        .call-overlay.video-mode .call-name,
+        .call-overlay.video-mode .call-status,
+        .call-overlay.video-mode .call-timer { z-index: 2; }
+        #remoteVideo {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+        #localVideo {
+            position: absolute; top: 16px; right: 16px;
+            width: 120px; height: 160px; object-fit: cover;
+            border-radius: 12px; border: 2px solid rgba(255,255,255,0.3);
+            z-index: 10; background: #1a1a1a;
+        }
+        .video-call-info {
+            position: absolute; top: 0; left: 0; right: 0;
+            display: flex; flex-direction: column; align-items: center;
+            padding-top: 60px; z-index: 5;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%);
+            padding-bottom: 40px;
+        }
+        .video-call-actions {
+            position: absolute; bottom: 40px; left: 0; right: 0;
+            display: flex; justify-content: center; gap: 20px; z-index: 10;
+        }
 
         /* 通话按钮 */
         .call-btn {
@@ -325,7 +361,8 @@
                             <div class="status" id="chatStatus"></div>
                         </div>
                     </div>
-                    <button class="call-btn" id="callBtn" onclick="startCall()" title="语音通话">📞</button>
+                    <button class="call-btn" id="callBtn" onclick="startCall(false)" title="语音通话">📞</button>
+                    <button class="call-btn" id="videoCallBtn" onclick="startCall(true)" title="视频通话">📹</button>
                 </div>
                 <div class="empty-chat" id="emptyChat">选择一个好友开始聊天</div>
                 <div class="chat-messages" id="chatMessages" style="display:none"></div>
@@ -353,12 +390,19 @@
 
     <!-- 通话界面 -->
     <div class="call-overlay" id="callOverlay">
-        <div class="call-avatar" id="callAvatar">?</div>
-        <div class="call-name" id="callName">对方</div>
-        <div class="call-status" id="callStatus">正在呼叫...</div>
-        <div class="call-timer" id="callTimer">00:00</div>
-        <div class="call-actions">
+        <div class="call-video-container">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <video id="localVideo" autoplay playsinline muted></video>
+        </div>
+        <div class="video-call-info">
+            <div class="call-avatar" id="callAvatar">?</div>
+            <div class="call-name" id="callName">对方</div>
+            <div class="call-status" id="callStatus">正在呼叫...</div>
+            <div class="call-timer" id="callTimer">00:00</div>
+        </div>
+        <div class="call-actions video-call-actions">
             <button class="call-action-btn mute" id="muteBtn" onclick="toggleMute()">🎤</button>
+            <button class="call-action-btn video" id="videoBtn" onclick="toggleVideo()">📹</button>
             <button class="call-action-btn reject" id="rejectBtn" onclick="endCall()">📞</button>
             <button class="call-action-btn accept" id="acceptBtn" onclick="acceptCall()" style="display:none">📞</button>
             <button class="call-action-btn speaker" id="speakerBtn" onclick="toggleSpeaker()">🔊</button>
@@ -751,7 +795,9 @@
         let callTimer = null;
         let callSeconds = 0;
         let isMuted = false;
+        let isVideoOff = false;
         let isInCall = false;
+        let isVideoCall = false;
         let callTarget = null;
 
         // ICE 服务器配置（免费的 STUN 服务器）
@@ -763,16 +809,27 @@
         };
 
         // 发起通话
-        async function startCall() {
+        async function startCall(withVideo) {
             if (!currentFriend || isInCall) return;
 
             callTarget = currentFriend;
+            isVideoCall = withVideo;
             showCallUI("正在呼叫...");
 
             try {
-                // 获取麦克风权限
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                // 获取麦克风（和摄像头）权限
+                const constraints = withVideo
+                    ? { audio: true, video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } }
+                    : { audio: true };
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
                 setupPeerConnection();
+
+                // 显示本地预览
+                if (withVideo) {
+                    const localVideo = document.getElementById("localVideo");
+                    localVideo.srcObject = localStream;
+                    document.getElementById("callOverlay").classList.add("video-mode");
+                }
 
                 // 创建 offer
                 const offer = await peerConnection.createOffer();
@@ -784,12 +841,13 @@
                     from: currentUser.id,
                     fromName: currentUser.username,
                     to: callTarget.id,
-                    offer: offer
+                    offer: offer,
+                    video: withVideo
                 }));
             } catch (e) {
                 console.error("呼叫失败:", e);
                 endCall();
-                alert("无法访问麦克风，请检查权限");
+                alert(withVideo ? "无法访问摄像头/麦克风，请检查权限" : "无法访问麦克风，请检查权限");
             }
         }
 
@@ -804,27 +862,37 @@
                 });
             }
 
-            // 收到远程音频流
+            // 收到远程流
             peerConnection.ontrack = function(event) {
-                console.log("收到远程音频流");
-                let audio = document.getElementById("remoteAudio");
-                if (!audio) {
-                    audio = document.createElement("audio");
-                    audio.id = "remoteAudio";
-                    audio.autoplay = true;
-                    audio.playsInline = true;
-                    document.body.appendChild(audio);
+                console.log("收到远程流, track kind:", event.track.kind);
+                if (isVideoCall && event.track.kind === "video") {
+                    // 视频流显示到 remoteVideo
+                    const remoteVideo = document.getElementById("remoteVideo");
+                    if (!remoteVideo.srcObject) {
+                        remoteVideo.srcObject = event.streams[0];
+                    }
+                    remoteVideo.play().catch(function() {});
+                } else if (event.track.kind === "audio") {
+                    // 音频流
+                    let audio = document.getElementById("remoteAudio");
+                    if (!audio) {
+                        audio = document.createElement("audio");
+                        audio.id = "remoteAudio";
+                        audio.autoplay = true;
+                        audio.playsInline = true;
+                        document.body.appendChild(audio);
+                    }
+                    if (!audio.srcObject) {
+                        audio.srcObject = event.streams[0];
+                    }
+                    audio.play().catch(function(e) {
+                        console.log("自动播放失败，等待用户交互");
+                        document.addEventListener("click", function playAudio() {
+                            audio.play().catch(function() {});
+                            document.removeEventListener("click", playAudio);
+                        }, { once: true });
+                    });
                 }
-                audio.srcObject = event.streams[0];
-                // 确保播放
-                audio.play().catch(function(e) {
-                    console.log("自动播放失败，等待用户交互");
-                    // 如果自动播放失败，等用户交互后播放
-                    document.addEventListener("click", function playAudio() {
-                        audio.play().catch(function() {});
-                        document.removeEventListener("click", playAudio);
-                    }, { once: true });
-                });
             };
 
             // 连接状态变化
@@ -864,6 +932,11 @@
             isInCall = true;
             const overlay = document.getElementById("callOverlay");
             overlay.classList.add("show");
+            if (isVideoCall) {
+                overlay.classList.add("video-mode");
+            } else {
+                overlay.classList.remove("video-mode");
+            }
             document.getElementById("callAvatar").textContent = callTarget.username[0].toUpperCase();
             document.getElementById("callName").textContent = callTarget.username;
             document.getElementById("callStatus").textContent = status;
@@ -871,21 +944,29 @@
             document.getElementById("acceptBtn").style.display = "none";
             document.getElementById("rejectBtn").style.display = "flex";
             document.getElementById("muteBtn").style.display = "flex";
+            document.getElementById("videoBtn").style.display = "flex";
             document.getElementById("speakerBtn").style.display = "flex";
         }
 
         // 显示来电界面
-        function showIncomingCallUI(callerName) {
+        function showIncomingCallUI(callerName, hasVideo) {
             isInCall = true;
+            isVideoCall = hasVideo;
             const overlay = document.getElementById("callOverlay");
             overlay.classList.add("show");
+            if (hasVideo) {
+                overlay.classList.add("video-mode");
+            } else {
+                overlay.classList.remove("video-mode");
+            }
             document.getElementById("callAvatar").textContent = callerName[0].toUpperCase();
             document.getElementById("callName").textContent = callerName;
-            document.getElementById("callStatus").textContent = "来电...";
+            document.getElementById("callStatus").textContent = hasVideo ? "视频来电..." : "来电...";
             document.getElementById("callTimer").style.display = "none";
             document.getElementById("acceptBtn").style.display = "flex";
             document.getElementById("rejectBtn").style.display = "flex";
             document.getElementById("muteBtn").style.display = "none";
+            document.getElementById("videoBtn").style.display = "none";
             document.getElementById("speakerBtn").style.display = "none";
 
             // 播放来电铃声
@@ -895,9 +976,20 @@
         // 接听电话
         async function acceptCall() {
             try {
-                console.log("开始接听电话");
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                console.log("获取麦克风成功");
+                console.log("开始接听电话, isVideoCall:", isVideoCall);
+                const constraints = isVideoCall
+                    ? { audio: true, video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } }
+                    : { audio: true };
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                console.log("获取媒体成功");
+
+                // 显示本地预览
+                if (isVideoCall) {
+                    const localVideo = document.getElementById("localVideo");
+                    localVideo.srcObject = localStream;
+                    document.getElementById("callOverlay").classList.add("video-mode");
+                }
+
                 setupPeerConnection();
 
                 // 设置远程 offer
@@ -954,10 +1046,19 @@
                 peerConnection = null;
             }
 
-            // 停止音频流
+            // 停止媒体流
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
                 localStream = null;
+            }
+
+            // 清理视频元素
+            const remoteVideo = document.getElementById("remoteVideo");
+            if (remoteVideo) remoteVideo.srcObject = null;
+            const localVideo = document.getElementById("localVideo");
+            if (localVideo) {
+                localVideo.srcObject = null;
+                localVideo.style.opacity = "1";
             }
 
             // 移除远程音频
@@ -971,8 +1072,12 @@
             }
 
             // 隐藏通话界面
-            document.getElementById("callOverlay").classList.remove("show");
+            const overlay = document.getElementById("callOverlay");
+            overlay.classList.remove("show");
+            overlay.classList.remove("video-mode");
             isInCall = false;
+            isVideoCall = false;
+            isVideoOff = false;
             callTarget = null;
             callSeconds = 0;
             isMuted = false;
@@ -1012,7 +1117,29 @@
         function toggleSpeaker() {
             const btn = document.getElementById("speakerBtn");
             btn.classList.toggle("active");
-            // 注意：浏览器端切换扬声器需要 Web Audio API，这里只是 UI 示例
+        }
+
+        // 切换摄像头
+        function toggleVideo() {
+            if (!localStream) return;
+            const videoTracks = localStream.getVideoTracks();
+            if (videoTracks.length === 0) return;
+
+            isVideoOff = !isVideoOff;
+            videoTracks.forEach(track => track.enabled = !isVideoOff);
+            const btn = document.getElementById("videoBtn");
+            btn.classList.toggle("active", isVideoOff);
+            btn.innerHTML = isVideoOff
+                ? '<span style="text-decoration:line-through">📹</span>'
+                : '📹';
+
+            // 本地预览
+            const localVideo = document.getElementById("localVideo");
+            if (isVideoOff) {
+                localVideo.style.opacity = "0.2";
+            } else {
+                localVideo.style.opacity = "1";
+            }
         }
 
         // 播放来电铃声
@@ -1044,7 +1171,7 @@
                 // 收到来电
                 callTarget = { id: msg.from, username: msg.fromName };
                 incomingOffer = msg.offer;
-                showIncomingCallUI(msg.fromName);
+                showIncomingCallUI(msg.fromName, msg.video === true);
 
             } else if (msg.type === "call-answer") {
                 // 对方接听
