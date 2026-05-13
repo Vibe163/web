@@ -806,6 +806,7 @@
 
             // 收到远程音频流
             peerConnection.ontrack = function(event) {
+                console.log("收到远程音频流");
                 let audio = document.getElementById("remoteAudio");
                 if (!audio) {
                     audio = document.createElement("audio");
@@ -816,13 +817,28 @@
                 }
                 audio.srcObject = event.streams[0];
                 // 确保播放
-                audio.play().catch(function() {
+                audio.play().catch(function(e) {
+                    console.log("自动播放失败，等待用户交互");
                     // 如果自动播放失败，等用户交互后播放
                     document.addEventListener("click", function playAudio() {
-                        audio.play();
+                        audio.play().catch(function() {});
                         document.removeEventListener("click", playAudio);
                     }, { once: true });
                 });
+            };
+
+            // 连接状态变化
+            peerConnection.onconnectionstatechange = function() {
+                console.log("连接状态:", peerConnection.connectionState);
+                if (peerConnection.connectionState === "connected") {
+                    document.getElementById("callStatus").textContent = "通话中";
+                    startCallTimer();
+                    // 连接建立后，确保音频播放
+                    const audio = document.getElementById("remoteAudio");
+                    if (audio && audio.srcObject) {
+                        audio.play().catch(function() {});
+                    }
+                }
             };
 
             // ICE 候选
@@ -834,14 +850,6 @@
                         to: callTarget.id,
                         candidate: event.candidate
                     }));
-                }
-            };
-
-            // 连接状态变化
-            peerConnection.onconnectionstatechange = function() {
-                if (peerConnection.connectionState === "connected") {
-                    document.getElementById("callStatus").textContent = "通话中";
-                    startCallTimer();
                 }
             };
         }
