@@ -11,6 +11,15 @@ const wss = new WebSocketServer({ server });
 // 中间件
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// 维护模式开关：环境变量 MAINTENANCE=1 时关站
+app.use(function(req, res, next) {
+    if (process.env.MAINTENANCE === "1") {
+        return res.status(503).send('<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>维护中</title><style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0e1621;font-family:-apple-system,sans-serif}.box{text-align:center;color:#f5f5f5}.icon{font-size:64px;margin-bottom:20px}.title{font-size:24px;font-weight:600;margin-bottom:12px}.desc{color:#708499;font-size:15px}</style></head><body><div class="box"><div class="icon">🔧</div><div class="title">系统维护中</div><div class="desc">网站暂时关闭，请稍后再来</div></div></body></html>');
+    }
+    next();
+});
+
 app.use(express.static("public"));
 
 // 跨域
