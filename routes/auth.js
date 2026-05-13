@@ -67,4 +67,14 @@ router.get("/users", function(req, res) {
     res.json(users);
 });
 
+// GET /api/auth/verify/:id - 验证用户是否存在
+router.get("/verify/:id", function(req, res) {
+    const user = db.prepare("SELECT id FROM users WHERE id = ?").get(req.params.id);
+    if (user) {
+        res.json({ valid: true });
+    } else {
+        res.status(404).json({ valid: false });
+    }
+});
+
 module.exports = router;

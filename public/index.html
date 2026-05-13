@@ -375,11 +375,24 @@
         let isLogin = true;
 
         // 初始化
-        function init() {
+        async function init() {
             const saved = localStorage.getItem("chatUser");
             if (saved) {
                 currentUser = JSON.parse(saved);
-                showMainPage();
+                // 验证用户是否还存在
+                try {
+                    const res = await fetch("/api/auth/verify/" + currentUser.id);
+                    if (res.ok) {
+                        showMainPage();
+                    } else {
+                        // 用户不存在，清除登录状态
+                        localStorage.removeItem("chatUser");
+                        currentUser = null;
+                    }
+                } catch (e) {
+                    localStorage.removeItem("chatUser");
+                    currentUser = null;
+                }
             }
         }
 
