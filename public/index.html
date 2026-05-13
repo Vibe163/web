@@ -173,6 +173,57 @@
         .chat-header .details .status { color: #708499; font-size: 13px; }
         .chat-header .details .status.online { color: #4dcd5e; }
 
+        /* 通话按钮 */
+        .call-btn {
+            background: none; border: none; color: #4dcd5e;
+            cursor: pointer; font-size: 22px; padding: 8px;
+            border-radius: 50%; transition: background 0.2s;
+            margin-left: auto;
+        }
+        .call-btn:hover { background: #1f2936; }
+
+        /* 通话界面 */
+        .call-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85); display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            z-index: 200;
+        }
+        .call-overlay.show { display: flex; }
+        .call-avatar {
+            width: 100px; height: 100px; border-radius: 50%;
+            background: linear-gradient(135deg, #6ab2f2, #4a9dea);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 42px; font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .call-name { color: #f5f5f5; font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+        .call-status { color: #708499; font-size: 16px; margin-bottom: 40px; }
+        .call-timer { color: #4dcd5e; font-size: 18px; margin-bottom: 40px; display: none; }
+        .call-actions { display: flex; gap: 30px; }
+        .call-action-btn {
+            width: 64px; height: 64px; border-radius: 50%;
+            border: none; cursor: pointer; font-size: 24px;
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.2s;
+        }
+        .call-action-btn:hover { transform: scale(1.1); }
+        .call-action-btn.accept { background: #4dcd5e; color: white; }
+        .call-action-btn.reject { background: #e53935; color: white; }
+        .call-action-btn.mute { background: #242f3d; color: white; }
+        .call-action-btn.mute.active { background: #e53935; }
+        .call-action-btn.speaker { background: #242f3d; color: white; }
+        .call-action-btn.speaker.active { background: #2b5278; }
+
+        /* 通话按钮 */
+        .call-btn {
+            background: none; border: none; color: #4dcd5e;
+            cursor: pointer; font-size: 22px; padding: 8px;
+            border-radius: 50%; transition: background 0.2s;
+            margin-left: auto;
+        }
+        .call-btn:hover { background: #1f2936; }
+
         .chat-messages {
             flex: 1; overflow-y: auto; padding: 12px 16px;
         }
@@ -274,6 +325,7 @@
                             <div class="status" id="chatStatus"></div>
                         </div>
                     </div>
+                    <button class="call-btn" id="callBtn" onclick="startCall()" title="语音通话">📞</button>
                 </div>
                 <div class="empty-chat" id="emptyChat">选择一个好友开始聊天</div>
                 <div class="chat-messages" id="chatMessages" style="display:none"></div>
@@ -296,6 +348,20 @@
             <input type="text" id="searchUserInput" placeholder="输入用户名搜索..." oninput="searchUsers()">
             <div class="search-results" id="searchResults"></div>
             <button class="close-btn" onclick="closeAddFriend()">关闭</button>
+        </div>
+    </div>
+
+    <!-- 通话界面 -->
+    <div class="call-overlay" id="callOverlay">
+        <div class="call-avatar" id="callAvatar">?</div>
+        <div class="call-name" id="callName">对方</div>
+        <div class="call-status" id="callStatus">正在呼叫...</div>
+        <div class="call-timer" id="callTimer">00:00</div>
+        <div class="call-actions">
+            <button class="call-action-btn mute" id="muteBtn" onclick="toggleMute()">🎤</button>
+            <button class="call-action-btn reject" id="rejectBtn" onclick="endCall()">📞</button>
+            <button class="call-action-btn accept" id="acceptBtn" onclick="acceptCall()" style="display:none">📞</button>
+            <button class="call-action-btn speaker" id="speakerBtn" onclick="toggleSpeaker()">🔊</button>
         </div>
     </div>
 
@@ -389,6 +455,8 @@
                     updateChatStatus();
                 } else if (msg.type === "chat") {
                     handleIncomingMessage(msg);
+                } else if (msg.type === "call-offer" || msg.type === "call-answer" || msg.type === "call-candidate" || msg.type === "call-end") {
+                    handleCallSignaling(msg);
                 }
             };
 
@@ -650,6 +718,282 @@
         function logout() {
             localStorage.removeItem("chatUser");
             location.reload();
+        }
+
+        // ========== 语音通话 ==========
+
+        let peerConnection = null;
+        let localStream = null;
+        let callTimer = null;
+        let callSeconds = 0;
+        let isMuted = false;
+        let isInCall = false;
+        let callTarget = null;
+
+        // ICE 服务器配置（免费的 STUN 服务器）
+        const rtcConfig = {
+            iceServers: [
+                { urls: "stun:stun.l.google.com:19302" },
+                { urls: "stun:stun1.l.google.com:19302" }
+            ]
+        };
+
+        // 发起通话
+        async function startCall() {
+            if (!currentFriend || isInCall) return;
+
+            callTarget = currentFriend;
+            showCallUI("正在呼叫...");
+
+            try {
+                // 获取麦克风权限
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                setupPeerConnection();
+
+                // 创建 offer
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+
+                // 发送 offer 给对方
+                ws.send(JSON.stringify({
+                    type: "call-offer",
+                    from: currentUser.id,
+                    fromName: currentUser.username,
+                    to: callTarget.id,
+                    offer: offer
+                }));
+            } catch (e) {
+                console.error("呼叫失败:", e);
+                endCall();
+                alert("无法访问麦克风，请检查权限");
+            }
+        }
+
+        // 设置 WebRTC 连接
+        function setupPeerConnection() {
+            peerConnection = new RTCPeerConnection(rtcConfig);
+
+            // 添加本地音频流
+            if (localStream) {
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+            }
+
+            // 收到远程音频流
+            peerConnection.ontrack = function(event) {
+                const audio = document.createElement("audio");
+                audio.srcObject = event.streams[0];
+                audio.autoplay = true;
+                audio.id = "remoteAudio";
+                document.body.appendChild(audio);
+            };
+
+            // ICE 候选
+            peerConnection.onicecandidate = function(event) {
+                if (event.candidate) {
+                    ws.send(JSON.stringify({
+                        type: "call-candidate",
+                        from: currentUser.id,
+                        to: callTarget.id,
+                        candidate: event.candidate
+                    }));
+                }
+            };
+
+            // 连接状态变化
+            peerConnection.onconnectionstatechange = function() {
+                if (peerConnection.connectionState === "connected") {
+                    document.getElementById("callStatus").textContent = "通话中";
+                    startCallTimer();
+                }
+            };
+        }
+
+        // 显示通话界面
+        function showCallUI(status) {
+            isInCall = true;
+            const overlay = document.getElementById("callOverlay");
+            overlay.classList.add("show");
+            document.getElementById("callAvatar").textContent = callTarget.username[0].toUpperCase();
+            document.getElementById("callName").textContent = callTarget.username;
+            document.getElementById("callStatus").textContent = status;
+            document.getElementById("callTimer").style.display = "none";
+            document.getElementById("acceptBtn").style.display = "none";
+            document.getElementById("rejectBtn").style.display = "flex";
+            document.getElementById("muteBtn").style.display = "flex";
+            document.getElementById("speakerBtn").style.display = "flex";
+        }
+
+        // 显示来电界面
+        function showIncomingCallUI(callerName) {
+            isInCall = true;
+            const overlay = document.getElementById("callOverlay");
+            overlay.classList.add("show");
+            document.getElementById("callAvatar").textContent = callerName[0].toUpperCase();
+            document.getElementById("callName").textContent = callerName;
+            document.getElementById("callStatus").textContent = "来电...";
+            document.getElementById("callTimer").style.display = "none";
+            document.getElementById("acceptBtn").style.display = "flex";
+            document.getElementById("rejectBtn").style.display = "flex";
+            document.getElementById("muteBtn").style.display = "none";
+            document.getElementById("speakerBtn").style.display = "none";
+
+            // 播放来电铃声
+            playRingtone();
+        }
+
+        // 接听电话
+        async function acceptCall() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                setupPeerConnection();
+
+                // 设置远程 offer
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOffer));
+
+                // 创建 answer
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+
+                // 发送 answer 给对方
+                ws.send(JSON.stringify({
+                    type: "call-answer",
+                    from: currentUser.id,
+                    to: callTarget.id,
+                    answer: answer
+                }));
+
+                document.getElementById("callStatus").textContent = "通话中";
+                document.getElementById("acceptBtn").style.display = "none";
+                document.getElementById("muteBtn").style.display = "flex";
+                document.getElementById("speakerBtn").style.display = "flex";
+            } catch (e) {
+                console.error("接听失败:", e);
+                endCall();
+            }
+        }
+
+        let incomingOffer = null;
+
+        // 结束通话
+        function endCall() {
+            // 发送挂断信号
+            if (callTarget) {
+                ws.send(JSON.stringify({
+                    type: "call-end",
+                    from: currentUser.id,
+                    to: callTarget.id
+                }));
+            }
+
+            // 关闭 WebRTC 连接
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+
+            // 停止音频流
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+
+            // 移除远程音频
+            const remoteAudio = document.getElementById("remoteAudio");
+            if (remoteAudio) remoteAudio.remove();
+
+            // 停止计时器
+            if (callTimer) {
+                clearInterval(callTimer);
+                callTimer = null;
+            }
+
+            // 隐藏通话界面
+            document.getElementById("callOverlay").classList.remove("show");
+            isInCall = false;
+            callTarget = null;
+            callSeconds = 0;
+            isMuted = false;
+            incomingOffer = null;
+        }
+
+        // 开始计时
+        function startCallTimer() {
+            callSeconds = 0;
+            const timerEl = document.getElementById("callTimer");
+            timerEl.style.display = "block";
+            callTimer = setInterval(function() {
+                callSeconds++;
+                const mins = Math.floor(callSeconds / 60).toString().padStart(2, "0");
+                const secs = (callSeconds % 60).toString().padStart(2, "0");
+                timerEl.textContent = mins + ":" + secs;
+            }, 1000);
+        }
+
+        // 切换静音
+        function toggleMute() {
+            if (!localStream) return;
+            isMuted = !isMuted;
+            localStream.getAudioTracks().forEach(track => track.enabled = !isMuted);
+            document.getElementById("muteBtn").classList.toggle("active", isMuted);
+            document.getElementById("muteBtn").textContent = isMuted ? "🔇" : "🎤";
+        }
+
+        // 切换扬声器（移动端）
+        function toggleSpeaker() {
+            const btn = document.getElementById("speakerBtn");
+            btn.classList.toggle("active");
+            // 注意：浏览器端切换扬声器需要 Web Audio API，这里只是 UI 示例
+        }
+
+        // 播放来电铃声
+        function playRingtone() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                let count = 0;
+                const interval = setInterval(function() {
+                    if (count >= 6 || !isInCall) {
+                        clearInterval(interval);
+                        return;
+                    }
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.frequency.value = count % 2 === 0 ? 440 : 480;
+                    gain.gain.value = 0.2;
+                    osc.start();
+                    setTimeout(() => osc.stop(), 200);
+                    count++;
+                }, 300);
+            } catch (e) {}
+        }
+
+        // 处理通话信令
+        function handleCallSignaling(msg) {
+            if (msg.type === "call-offer") {
+                // 收到来电
+                callTarget = { id: msg.from, username: msg.fromName };
+                incomingOffer = msg.offer;
+                showIncomingCallUI(msg.fromName);
+
+            } else if (msg.type === "call-answer") {
+                // 对方接听
+                peerConnection.setRemoteDescription(new RTCSessionDescription(msg.answer));
+                document.getElementById("callStatus").textContent = "通话中";
+                startCallTimer();
+
+            } else if (msg.type === "call-candidate") {
+                // 收到 ICE 候选
+                if (peerConnection) {
+                    peerConnection.addIceCandidate(new RTCIceCandidate(msg.candidate));
+                }
+
+            } else if (msg.type === "call-end") {
+                // 对方挂断
+                endCall();
+            }
         }
 
         init();

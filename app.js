@@ -65,6 +65,12 @@ wss.on("connection", function(ws) {
                 // 保存消息到数据库
                 const db = require("./db/database");
                 db.prepare("INSERT INTO messages (from_user, to_user, content) VALUES (?, ?, ?)").run(msg.from, msg.to, msg.content);
+            } else if (msg.type === "call-offer" || msg.type === "call-answer" || msg.type === "call-candidate" || msg.type === "call-end") {
+                // WebRTC 信令：转发给目标用户
+                const targetWs = onlineUsers.get(msg.to);
+                if (targetWs && targetWs.readyState === 1) {
+                    targetWs.send(JSON.stringify(msg));
+                }
             }
         } catch (e) {
             console.error("消息处理错误:", e);
